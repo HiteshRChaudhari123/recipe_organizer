@@ -1,76 +1,105 @@
+import tkinter as tk
+from tkinter import simpledialog, messagebox, scrolledtext, font
 import os
 
+# Function to load recipes from file
 def load_recipes():
-    if not os.path.exists("/mnt/data/recipes.txt"):
-        os.makedirs("/mnt/data", exist_ok=True)  # Ensure the directory exists
-        with open("/mnt/data/recipes.txt", "w") as file:  # Create the file if it doesn't exist
+    if not os.path.exists("recipes.txt"):
+        with open("recipes.txt", "w") as file:
             file.write("{}")
-        print("No saved recipes found. Created a new recipe book.")
         return {}
     
-    with open("/mnt/data/recipes.txt", "r") as file:
+    with open("recipes.txt", "r") as file:
         content = file.read()
         return eval(content) if content else {}
 
+# Function to save recipes to file
+def save_recipes(recipes):
+    with open("recipes.txt", "w") as file:
+        file.write(str(recipes))
+
+# Function to add a recipe
+def add_recipe(name, ingredients, instructions, recipes):
+    recipes[name] = {'Ingredients': ingredients, 'Instructions': instructions}
+    save_recipes(recipes)
+    messagebox.showinfo("Success", f"Recipe for {name} added successfully!")
+
+# Function to display a recipe
+def view_recipe(name, recipes):
+    recipe = recipes.get(name)
+    if recipe:
+        messagebox.showinfo(name, f"Ingredients: {', '.join(recipe['Ingredients'])}\\nInstructions: {recipe['Instructions']}")
+    else:
+        messagebox.showerror("Error", "Recipe not found.")
+
+# Function to view all recipes
+def view_all_recipes(recipes):
+    if recipes:
+        results = ""
+        for name, recipe in recipes.items():
+            results += f"Recipe: {name}\\nIngredients: {', '.join(recipe['Ingredients'])}\\nInstructions: {recipe['Instructions']}\\n\\n"
+        
+        scrolled_text = scrolledtext.ScrolledText(root, width=40, height=10)
+        scrolled_text.insert(tk.INSERT, results)
+        scrolled_text.pack()
+    else:
+        messagebox.showinfo("View Recipes", "No recipes available.")
+
+# Function to search for recipes
+def search_recipe(keyword, recipes):
+    found = False
+    results = ""
+    for name, recipe in recipes.items():
+        if keyword.lower() in name.lower() or keyword.lower() in ' '.join(recipe['Ingredients']).lower() or keyword.lower() in recipe['Instructions'].lower():
+            results += f"Recipe: {name}\\nIngredients: {', '.join(recipe['Ingredients'])}\\nInstructions: {recipe['Instructions']}\\n\\n"
+            found = True
+    if found:
+        scrolled_text = scrolledtext.ScrolledText(root, width=40, height=10)
+        scrolled_text.insert(tk.INSERT, results)
+        scrolled_text.pack()
+    else:
+        messagebox.showinfo("Search Results", "No recipes found for the given keyword.")
+
+# Tkinter UI Functions
+def add_recipe_ui():
+    name = simpledialog.askstring("Add Recipe", "Enter the recipe name:")
+    if name:
+        ingredients = simpledialog.askstring("Add Recipe", "Enter the ingredients (comma-separated):").split(',')
+        instructions = simpledialog.askstring("Add Recipe", "Enter the instructions:")
+        add_recipe(name, ingredients, instructions, recipes)
+
+def view_recipes_ui():
+    view_all_recipes(recipes)
+
+def search_recipes_ui():
+    keyword = simpledialog.askstring("Search Recipe", "Enter a keyword to search for a recipe:")
+    if keyword:
+        search_recipe(keyword, recipes)
+
+# Load recipes
 recipes = load_recipes()
 
-def add_recipe():
-    name = input("Enter the recipe name: ")
-    ingredients = input("Enter the ingredients (comma-separated): ").split(',')
-    instructions = input("Enter the instructions: ")
-    recipes[name] = {'Ingredients': ingredients, 'Instructions': instructions}
-    print(f"Recipe for {name} added successfully!")
-    try:
-        with open("/mnt/data/recipes.txt", "w") as file:
-            file.write(str(recipes))
-    except Exception as e:
-        print(f"Error saving recipe: {e}")
+# Main Window Setup
+root = tk.Tk()
+root.title("Recipe Organizer")
+root.geometry("500x400") # Adjust window size
+root.configure(bg="#f0f0f0") # Set background color
 
-def view_recipe():
-    print("\nAvailable Recipes:")
-    for idx, name in enumerate(recipes.keys(), start=1):
-        print(f"{idx}. {name}")
-    try:
-        recipe_num = int(input("\nEnter the number of the recipe you want to view: "))
-        if 1 <= recipe_num <= len(recipes):
-            name = list(recipes.keys())[recipe_num - 1]
-            print(f"\nRecipe: {name}")
-            print(f"Ingredients: {', '.join(recipes[name]['Ingredients'])}")
-            print(f"Instructions: {recipes[name]['Instructions']}")
-        else:
-            print("Invalid recipe number.")
-    except ValueError:
-        print("Please enter a valid number.")
+# Custom Fonts
+title_font = font.Font(family="Helvetica", size=12, weight="bold")
+button_font = font.Font(family="Helvetica", size=10)
 
-def search_recipe():
-    keyword = input("Enter a keyword to search for a recipe: ")
-    found = False
-    for name, recipe in recipes.items():
-        if keyword in name or keyword in ' '.join(recipe['Ingredients']) or keyword in recipe['Instructions']:
-            print(f"\nRecipe: {name}")
-            print(f"Ingredients: {', '.join(recipe['Ingredients'])}")
-            print(f"Instructions: {recipe['Instructions']}")
-            found = True
-    if not found:
-        print("No recipes found for the given keyword.")
+# Add buttons for Add, View, Search, Exit
+add_button = tk.Button(root, text="Add Recipe", command=add_recipe_ui, font=button_font, bg="#4caf50", fg="white", pady=5, width=20)
+add_button.pack(pady=10, padx=20)
 
-while True:
-    print("\nRecipe Organizer Menu:")
-    print("1. Add Recipe")
-    print("2. View Recipe")
-    print("3. Search for Recipe")
-    print("4. Exit")
-    choice = input("Enter your choice (1/2/3/4): ")
+view_button = tk.Button(root, text="View Recipes", command=view_recipes_ui, font=button_font, bg="#2196f3", fg="white", pady=5, width=20)
+view_button.pack(pady=10, padx=20)
 
-    if choice == '1':
-        add_recipe()
-    elif choice == '2':
-        view_recipe()
-    elif choice == '3':
-        search_recipe()
-    elif choice == '4':
-        break
-    else:
-        print("Invalid choice. Please select a valid option.")
+search_button = tk.Button(root, text="Search Recipes", command=search_recipes_ui, font=button_font, bg="#ff9800", fg="white", pady=5, width=20)
+search_button.pack(pady=10, padx=20)
 
-print("Thank you for using the Recipe Organizer!")
+exit_button = tk.Button(root, text="Exit", command=root.quit, font=button_font, bg="#f44336", fg="white", pady=5, width=20)
+exit_button.pack(pady=10, padx=20)
+
+root.mainloop()
